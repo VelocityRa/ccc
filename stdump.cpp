@@ -117,15 +117,18 @@ void print_symbols(Program& program, SymbolTable& symbol_table) {
 }
 
 void print_types(Program& program, SymbolTable& symbol_table, bool verbose) {
+	std::set<std::string> parsed_symbols;
 	std::set<std::string> declared_symbols;
 
 	for(SymFileDescriptor& fd : symbol_table.files) {
+		//if (fd.name == "classes.c")
+			//continue;
 		std::string prefix;
+
 		for(Symbol& sym : fd.symbols) {
-			printf("// stype: %11s sclass: %d\n", symbol_type(sym.storage_type), sym.storage_class);
+			//printf("// stype: %11s sclass: %d\n", symbol_type(sym.storage_type), sym.storage_class);
 
 			if(sym.storage_type == SymbolType::NIL && (u32) sym.storage_class == 0) {
-
 				if(sym.string.find("@") == 0 || sym.string.find("$") == 0 || sym.string.size() == 0) {
 					continue;
 				}
@@ -134,13 +137,15 @@ void print_types(Program& program, SymbolTable& symbol_table, bool verbose) {
 					prefix += sym.string.substr(0, sym.string.size() - 1);
 				} else {
 					const std::string full_symbol = prefix + sym.string;
+					const bool parsed = (parsed_symbols.count(full_symbol) != 0);
 
-					if(verbose)
+					if(verbose && !parsed)
 						printf("//  PARSING %s\n", full_symbol.c_str());
 
-					const StabsSymbol stab_sym = parse_stabs_symbol(full_symbol.c_str(), verbose);
+					const StabsSymbol stab_sym = parse_stabs_symbol(full_symbol.c_str(), verbose && !parsed);
 
-					printf("//  type: %c %c name: %s\n", (u8) stab_sym.descriptor, (u8) stab_sym.type.descriptor, stab_sym.name.c_str());
+					if (!parsed)
+						printf("//  type: %c %c name: %s\n", (u8) stab_sym.descriptor, (u8) stab_sym.type.descriptor, stab_sym.name.c_str());
 
 					const std::string sym_name = stab_sym.name;
 
@@ -158,7 +163,7 @@ void print_types(Program& program, SymbolTable& symbol_table, bool verbose) {
 						case StabsTypeDescriptor::ENUM: {
 							const auto& fields = stab_sym.type.enum_type.fields;
 							const u32 max_name_size = aggregate_max_name_size(fields);
-							printf("typedef enum %s {\n", sym_name.c_str());
+							printf("typedef enum %s { // file: %s\n", sym_name.c_str(), fd.name.c_str());
 							for (const auto [name, value] : fields)
 								printf("\t%-*s = 0x%X,\n", max_name_size, name.c_str(), (s32) value);
 							printf("} %s;\n", sym_name.c_str());
@@ -182,6 +187,7 @@ void print_types(Program& program, SymbolTable& symbol_table, bool verbose) {
 					}
 
 					prefix = "";
+					parsed_symbols.insert(full_symbol);
 				}
 			}
 		}

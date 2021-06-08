@@ -35,6 +35,7 @@ void verify_impl(const char* file, int line, bool condition, const char* error_m
 	if(!condition) {
 		fprintf(stderr, "[%s:%d] ", file, line);
 		fprintf(stderr, error_message, args...);
+		__debugbreak();
 		exit(1);
 	}
 }
@@ -44,6 +45,7 @@ template <typename... Args>
 [[noreturn]] void verify_not_reached_impl(const char* file, int line, const char* error_message, Args... args) {
 	fprintf(stderr, "[%s:%d] ", file, line);
 	fprintf(stderr, error_message, args...);
+	__debugbreak();
 	exit(1);
 }
 #define verify_not_reached(...) \
@@ -192,10 +194,12 @@ enum class StabsTypeDescriptor : s8 {
 	AMPERSAND = '&',
 	POINTER = '*',
 	SLASH = '/',
-	MEMBER = '@'
+	MEMBER = '@',
+	METHOD = '#',
 };
 
 struct StabsField;
+struct StabsMember;
 
 struct StabsType {
 	StabsTypeDescriptor descriptor;
@@ -222,6 +226,7 @@ struct StabsType {
 	struct {
 		s64 type_number;
 		std::vector<StabsField> fields;
+		std::vector<StabsMember> members;
 	} struct_type;
 	struct {
 		s64 type_number;
@@ -238,6 +243,12 @@ struct StabsField {
 	s64 offset;
 	s64 size;
 	std::string type_name;
+};
+
+struct StabsMember {
+	std::string name;
+	std::string physname;
+	StabsType type;
 };
 
 struct StabsSymbol {
