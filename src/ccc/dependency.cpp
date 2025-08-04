@@ -101,6 +101,13 @@ static void map_types_to_files_based_on_reference_count_single_pass(SymbolDataba
 					if(data_type && data_type->handle() == type.handle()) {
 						reference_count++;
 					}
+				} else if(node.descriptor == ast::POINTER_OR_REFERENCE) {
+					const ast::PointerOrReference& ptr_or_ref = node.as<ast::PointerOrReference>();
+					const auto& [type_, data_type] = ptr_or_ref.value_type->physical_type(database);
+
+					if(data_type && data_type->handle() == type.handle()) {
+						reference_count++;
+					}
 				}
 				return ast::EXPLORE_CHILDREN;
 			};
